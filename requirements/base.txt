@@ -1,0 +1,15 @@
+python-slugify
+Pillow
+argon2-cffi
+redis
+hiredis
+celery
+django-celery-beat
+flower
+django
+django-environ
+django-model-utils
+django-allauth[mfa]
+django-crispy-forms
+crispy-bootstrap5
+django-redis
