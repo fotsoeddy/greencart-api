@@ -17,6 +17,7 @@ drf-spectacular==0.28.0
 factory-boy==3.3.3
 fido2==2.0.0
 flower==2.0.1
+gunicorn==23.0.0
 hiredis==3.2.1
 importlib-metadata==8.0.0
 ipdb==0.13.13
