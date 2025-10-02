@@ -1,41 +1,17 @@
 import uuid
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.utils import timezone
 from green_cart_api.users.models import GreenCartBaseModel
-from green_cart_api.catalog.models import Product, Category, Brand
+from green_cart_api.global_data.enm import DiscountType, PromotionScope
 
 
 class Promotion(GreenCartBaseModel):
     """
     Base promotion model for discounts and special offers
     """
-    DISCOUNT_TYPE_PERCENTAGE = 'percentage'
-    DISCOUNT_TYPE_FIXED = 'fixed_amount'
-    DISCOUNT_TYPE_BUY_X_GET_Y = 'buy_x_get_y'
-    DISCOUNT_TYPE_FREE_SHIPPING = 'free_shipping'
-    
-    DISCOUNT_TYPE_CHOICES = [
-        (DISCOUNT_TYPE_PERCENTAGE, _('Percentage')),
-        (DISCOUNT_TYPE_FIXED, _('Fixed Amount')),
-        (DISCOUNT_TYPE_BUY_X_GET_Y, _('Buy X Get Y')),
-        (DISCOUNT_TYPE_FREE_SHIPPING, _('Free Shipping')),
-    ]
-    
-    PROMOTION_SCOPE_ALL = 'all'
-    PROMOTION_SCOPE_PRODUCTS = 'products'
-    PROMOTION_SCOPE_CATEGORIES = 'categories'
-    PROMOTION_SCOPE_BRANDS = 'brands'
-    
-    PROMOTION_SCOPE_CHOICES = [
-        (PROMOTION_SCOPE_ALL, _('All Products')),
-        (PROMOTION_SCOPE_PRODUCTS, _('Specific Products')),
-        (PROMOTION_SCOPE_CATEGORIES, _('Product Categories')),
-        (PROMOTION_SCOPE_BRANDS, _('Product Brands')),
-    ]
-    
     name = models.CharField(
         max_length=255,
         help_text=_("Promotion name")
@@ -47,8 +23,8 @@ class Promotion(GreenCartBaseModel):
     )
     discount_type = models.CharField(
         max_length=20,
-        choices=DISCOUNT_TYPE_CHOICES,
-        default=DISCOUNT_TYPE_PERCENTAGE,
+        choices=DiscountType.choices,
+        default=DiscountType.PERCENTAGE,
         help_text=_("Type of discount")
     )
     discount_value = models.DecimalField(
@@ -59,8 +35,8 @@ class Promotion(GreenCartBaseModel):
     )
     scope = models.CharField(
         max_length=20,
-        choices=PROMOTION_SCOPE_CHOICES,
-        default=PROMOTION_SCOPE_ALL,
+        choices=PromotionScope.choices,
+        default=PromotionScope.ALL,
         help_text=_("Scope of the promotion")
     )
     minimum_purchase_amount = models.DecimalField(
@@ -113,19 +89,19 @@ class Promotion(GreenCartBaseModel):
     
     # Relationships for scoped promotions
     products = models.ManyToManyField(
-        Product,
+        'catalog.Product',
         related_name='promotions',
         blank=True,
         help_text=_("Products included in the promotion")
     )
     categories = models.ManyToManyField(
-        Category,
+        'catalog.Category',
         related_name='promotions',
         blank=True,
         help_text=_("Categories included in the promotion")
     )
     brands = models.ManyToManyField(
-        Brand,
+        'catalog.Brand',
         related_name='promotions',
         blank=True,
         help_text=_("Brands included in the promotion")
@@ -162,11 +138,11 @@ class Promotion(GreenCartBaseModel):
             return Decimal('0.00')
         
         # Calculate discount
-        if self.discount_type == self.DISCOUNT_TYPE_PERCENTAGE:
+        if self.discount_type == DiscountType.PERCENTAGE:
             discount = (cart_total * self.discount_value) / 100
             if self.maximum_discount_amount:
                 discount = min(discount, self.maximum_discount_amount)
-        elif self.discount_type == self.DISCOUNT_TYPE_FIXED:
+        elif self.discount_type == DiscountType.FIXED_AMOUNT:
             discount = min(self.discount_value, cart_total)
         else:
             discount = Decimal('0.00')

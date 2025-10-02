@@ -3,44 +3,14 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
 from decimal import Decimal
+from green_cart_api.global_data.enm import OrderStatus, PaymentStatus
 from green_cart_api.users.models import GreenCartBaseModel
-from green_cart_api.catalog.models import Product
 
 
 class Order(GreenCartBaseModel):
     """
     Order model for customer purchases
     """
-    ORDER_STATUS_PENDING = 'pending'
-    ORDER_STATUS_CONFIRMED = 'confirmed'
-    ORDER_STATUS_PROCESSING = 'processing'
-    ORDER_STATUS_SHIPPED = 'shipped'
-    ORDER_STATUS_DELIVERED = 'delivered'
-    ORDER_STATUS_CANCELLED = 'cancelled'
-    ORDER_STATUS_REFUNDED = 'refunded'
-    
-    ORDER_STATUS_CHOICES = [
-        (ORDER_STATUS_PENDING, _('Pending')),
-        (ORDER_STATUS_CONFIRMED, _('Confirmed')),
-        (ORDER_STATUS_PROCESSING, _('Processing')),
-        (ORDER_STATUS_SHIPPED, _('Shipped')),
-        (ORDER_STATUS_DELIVERED, _('Delivered')),
-        (ORDER_STATUS_CANCELLED, _('Cancelled')),
-        (ORDER_STATUS_REFUNDED, _('Refunded')),
-    ]
-    
-    PAYMENT_STATUS_PENDING = 'pending'
-    PAYMENT_STATUS_PAID = 'paid'
-    PAYMENT_STATUS_FAILED = 'failed'
-    PAYMENT_STATUS_REFUNDED = 'refunded'
-    
-    PAYMENT_STATUS_CHOICES = [
-        (PAYMENT_STATUS_PENDING, _('Pending')),
-        (PAYMENT_STATUS_PAID, _('Paid')),
-        (PAYMENT_STATUS_FAILED, _('Failed')),
-        (PAYMENT_STATUS_REFUNDED, _('Refunded')),
-    ]
-    
     user = models.ForeignKey(
         'users.User',
         on_delete=models.CASCADE,
@@ -54,14 +24,14 @@ class Order(GreenCartBaseModel):
     )
     status = models.CharField(
         max_length=20,
-        choices=ORDER_STATUS_CHOICES,
-        default=ORDER_STATUS_PENDING,
+        choices=OrderStatus.choices,
+        default=OrderStatus.PENDING,
         help_text=_("Order status")
     )
     payment_status = models.CharField(
         max_length=20,
-        choices=PAYMENT_STATUS_CHOICES,
-        default=PAYMENT_STATUS_PENDING,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING,
         help_text=_("Payment status")
     )
     
@@ -97,13 +67,24 @@ class Order(GreenCartBaseModel):
         help_text=_("Final total amount")
     )
     
-    # Customer information
-    shipping_address = models.JSONField(
-        help_text=_("Shipping address details")
+    # Address Information
+    shipping_address = models.ForeignKey(
+        'users.ShippingAddress',
+        on_delete=models.PROTECT,
+        related_name='orders',
+        help_text=_("Shipping address for this order")
+    )
+    billing_address_same = models.BooleanField(
+        default=True,
+        help_text=_("Whether billing address is same as shipping address")
     )
     billing_address = models.JSONField(
-        help_text=_("Billing address details")
+        blank=True,
+        null=True,
+        help_text=_("Billing address details (if different from shipping)")
     )
+    
+    # Customer information
     customer_note = models.TextField(
         blank=True,
         null=True,
@@ -122,6 +103,11 @@ class Order(GreenCartBaseModel):
         blank=True,
         null=True,
         help_text=_("Shipping method")
+    )
+    estimated_delivery = models.DateField(
+        blank=True,
+        null=True,
+        help_text=_("Estimated delivery date")
     )
     
     # Timestamps
@@ -152,20 +138,42 @@ class Order(GreenCartBaseModel):
     def save(self, *args, **kwargs):
         if not self.order_number:
             self.order_number = f"ORD{uuid.uuid4().hex[:12].upper()}"
+        
+        # Store shipping address as JSON for record keeping
+        if self.shipping_address and not self.billing_address and self.billing_address_same:
+            self.billing_address = self.shipping_address.to_dict()
+            
         super().save(*args, **kwargs)
 
     @property
     def is_paid(self):
-        return self.payment_status == self.PAYMENT_STATUS_PAID
+        return self.payment_status == PaymentStatus.PAID
 
     @property
     def can_be_cancelled(self):
-        return self.status in [self.ORDER_STATUS_PENDING, self.ORDER_STATUS_CONFIRMED]
+        return self.status in [OrderStatus.PENDING, OrderStatus.CONFIRMED]
+
+    @property
+    def items_count(self):
+        """Total number of items in order"""
+        return sum(item.quantity for item in self.items.all())
 
     def calculate_totals(self):
         """Calculate order totals from items"""
         self.subtotal = sum(item.total_price for item in self.items.all())
         self.total = self.subtotal - self.discount_amount + self.tax_amount + self.shipping_cost
+        self.save()
+
+    def get_shipping_address_display(self):
+        """Get formatted shipping address"""
+        if self.shipping_address:
+            return self.shipping_address.full_address
+        return "No shipping address"
+
+    def set_billing_address(self, address_data):
+        """Set billing address from dictionary"""
+        self.billing_address = address_data
+        self.billing_address_same = False
         self.save()
 
 
@@ -180,7 +188,7 @@ class OrderItem(GreenCartBaseModel):
         help_text=_("Parent order")
     )
     product = models.ForeignKey(
-        Product,
+        'catalog.Product',
         on_delete=models.PROTECT,
         related_name='order_items',
         help_text=_("Product ordered")

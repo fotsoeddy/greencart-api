@@ -1,7 +1,7 @@
 import uuid
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.utils.text import slugify
 from green_cart_api.users.models import GreenCartBaseModel
@@ -66,24 +66,84 @@ class Category(GreenCartBaseModel):
     def has_children(self):
         return self.children.exists()
 
-    def get_all_products(self):
-        """
-        Get all products in this category and its subcategories
-        """
-        from django.db.models import Q
-        categories = [self]
-        categories.extend(self.get_descendants())
-        return Product.objects.filter(categories__in=categories, is_active=True).distinct()
 
-    def get_descendants(self):
-        """
-        Get all descendant categories
-        """
-        descendants = []
-        for child in self.children.all():
-            descendants.append(child)
-            descendants.extend(child.get_descendants())
-        return descendants
+class Brand(GreenCartBaseModel):
+    """
+    Product brand model
+    """
+    name = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text=_("Brand name")
+    )
+    slug = models.SlugField(
+        max_length=255,
+        unique=True,
+        help_text=_("URL-friendly brand name")
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text=_("Brand description")
+    )
+    logo = models.ImageField(
+        upload_to='brand_logos/',
+        blank=True,
+        null=True,
+        help_text=_("Brand logo")
+    )
+    website = models.URLField(
+        blank=True,
+        null=True,
+        help_text=_("Brand website")
+    )
+
+    class Meta:
+        verbose_name = _("Brand")
+        verbose_name_plural = _("Brands")
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class Tag(GreenCartBaseModel):
+    """
+    Product tags for better search and categorization
+    """
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text=_("Tag name")
+    )
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        help_text=_("URL-friendly tag name")
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text=_("Tag description")
+    )
+
+    class Meta:
+        verbose_name = _("Tag")
+        verbose_name_plural = _("Tags")
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
 
 class Product(GreenCartBaseModel):
@@ -117,6 +177,20 @@ class Product(GreenCartBaseModel):
         related_name='products',
         help_text=_("Categories this product belongs to")
     )
+    brand = models.ForeignKey(
+        Brand,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='products',
+        help_text=_("Product brand")
+    )
+    tags = models.ManyToManyField(
+        Tag,
+        related_name='products',
+        blank=True,
+        help_text=_("Product tags")
+    )
     
     # Pricing
     price = models.DecimalField(
@@ -141,7 +215,6 @@ class Product(GreenCartBaseModel):
         validators=[MinValueValidator(Decimal('0.00'))],
         help_text=_("Cost price for profit calculation")
     )
-    
     
     quantity = models.PositiveIntegerField(
         default=0,
@@ -186,12 +259,6 @@ class Product(GreenCartBaseModel):
         blank=True,
         null=True,
         help_text=_("SEO meta description")
-    )
-    tags = models.CharField(
-        max_length=500,
-        blank=True,
-        null=True,
-        help_text=_("Comma-separated tags for search and filtering")
     )
     
     # Status Flags
@@ -253,15 +320,6 @@ class Product(GreenCartBaseModel):
             return primary
         return self.images.first()
 
-    def get_average_rating(self):
-        """Calculate average rating from reviews"""
-        from django.db.models import Avg
-        return self.reviews.aggregate(avg_rating=Avg('rating'))['avg_rating'] or 0
-
-    def get_review_count(self):
-        """Get total number of reviews"""
-        return self.reviews.count()
-
 
 class ProductImage(GreenCartBaseModel):
     """
@@ -307,50 +365,4 @@ class ProductImage(GreenCartBaseModel):
                 product=self.product, 
                 is_primary=True
             ).update(is_primary=False)
-        super().save(*args, **kwargs)
-
-
-
-class Brand(GreenCartBaseModel):
-    """
-    Product brand model
-    """
-    name = models.CharField(
-        max_length=255,
-        unique=True,
-        help_text=_("Brand name")
-    )
-    slug = models.SlugField(
-        max_length=255,
-        unique=True,
-        help_text=_("URL-friendly brand name")
-    )
-    description = models.TextField(
-        blank=True,
-        null=True,
-        help_text=_("Brand description")
-    )
-    logo = models.ImageField(
-        upload_to='brand_logos/',
-        blank=True,
-        null=True,
-        help_text=_("Brand logo")
-    )
-    website = models.URLField(
-        blank=True,
-        null=True,
-        help_text=_("Brand website")
-    )
-
-    class Meta:
-        verbose_name = _("Brand")
-        verbose_name_plural = _("Brands")
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
         super().save(*args, **kwargs)
