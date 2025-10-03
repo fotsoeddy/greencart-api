@@ -45,12 +45,13 @@ class GreenCartBaseModel(TimeStampedModel, ActivatorModel):
 class User(AbstractBaseUser, PermissionsMixin, GreenCartBaseModel):
     first_name = models.CharField(max_length=100, help_text=_("User's first name."))
     last_name = models.CharField(max_length=100, help_text=_("User's last name."))
+    username = models.CharField(max_length=150, unique=True, help_text=_("Unique username for the user."))
     email = models.EmailField(unique=True, help_text=_("Unique user email address."))
     is_admin = models.BooleanField(default=False, help_text=_("Designates whether the user is an admin."))
-    is_active = models.BooleanField(default=True, help_text=_("Designates whether this user should be treated as active."))
+    is_active = models.BooleanField(default=False, help_text=_("Designates whether this user should be treated as active."))
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name", "last_name"]
+    REQUIRED_FIELDS = [] 
 
     objects = UserManager()
 
@@ -66,7 +67,6 @@ class User(AbstractBaseUser, PermissionsMixin, GreenCartBaseModel):
 
     def has_module_perms(self, app_label):
         return self.is_admin
-
 
 
 

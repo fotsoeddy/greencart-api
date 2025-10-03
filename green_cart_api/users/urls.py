@@ -1,12 +1,17 @@
 from django.urls import path
+from .api.views.user_view import (
+    RegisterView, LoginView, RefreshTokenView, VerifyEmailView,
+    ProfileRetrieveView, ProfileUpdateView, UserListView
+)
 
-from .views import user_detail_view
-from .views import user_redirect_view
-from .views import user_update_view
+app_name = 'users'
 
-app_name = "users"
 urlpatterns = [
-    path("~redirect/", view=user_redirect_view, name="redirect"),
-    path("~update/", view=user_update_view, name="update"),
-    path("<int:pk>/", view=user_detail_view, name="detail"),
+    path('register/', RegisterView.as_view(), name='register'),
+    path('login/', LoginView.as_view(), name='login'),
+    path('refresh-token/', RefreshTokenView.as_view(), name='token_refresh'),
+    path('verify_email/', VerifyEmailView.as_view(), name='verify_email'),
+    path('profile/', ProfileRetrieveView.as_view(), name='profile_retrieve'),
+    path('profile/update/', ProfileUpdateView.as_view(), name='profile_update'),
+    path('users/', UserListView.as_view(), name='user_list'),
 ]
