@@ -12,6 +12,7 @@ django-extensions==4.1
 django-model-utils==5.0.0
 django-redis==6.0.0
 django-stubs==5.2.5
+djangorestframework-simplejwt==5.5.1
 djlint==1.36.4
 drf-spectacular==0.28.0
 factory-boy==3.3.3
