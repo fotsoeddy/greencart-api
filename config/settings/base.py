@@ -5,7 +5,7 @@ import ssl
 from pathlib import Path
 
 import environ
-from decouple import config
+from decouple import config, Csv
 import dj_database_url
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
