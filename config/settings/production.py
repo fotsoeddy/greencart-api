@@ -11,11 +11,7 @@ from .base import env
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = config(
-    "DJANGO_ALLOWED_HOSTS",
-    default="greencart-api-qs0a.onrender.com,www.yourdomain.com",
-    cast=lambda v: [host.strip() for host in v.split(",")]
-)
+ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", cast=list)
 
 # DATABASES
 # ------------------------------------------------------------------------------
