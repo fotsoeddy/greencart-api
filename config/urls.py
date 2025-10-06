@@ -11,6 +11,8 @@ from rest_framework.permissions import AllowAny
 urlpatterns = [
     path(settings.ADMIN_URL, admin.site.urls),
     path('api/', include('green_cart_api.users.urls', namespace='users')),
+    path('api/catalog/', include('green_cart_api.catalog.urls', namespace='catalog')),
+    path('api/wishlist/', include('green_cart_api.wishlist.urls', namespace='wishlist')),
     path('accounts/', include('allauth.urls')),
     path(
         'api/schema/',
