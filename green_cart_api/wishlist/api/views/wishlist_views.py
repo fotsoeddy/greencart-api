@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse, OpenApiExample
 
 from green_cart_api.wishlist.models import Wishlist, WishlistItem
 from green_cart_api.catalog.models import Product
@@ -24,7 +24,17 @@ def get_or_create_user_wishlist(user):
 class WishlistRetrieveView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(summary="Retrieve current user's wishlist", responses={200: WishlistSerializer})
+    @extend_schema(
+        summary="Retrieve current user's wishlist",
+        description="Returns the authenticated user's wishlist, creating it if it does not exist.",
+        responses={
+            200: OpenApiResponse(
+                response=WishlistSerializer,
+                description='Wishlist',
+                examples=[OpenApiExample(name='Wishlist', value={"id": 1, "name": "My Wishlist", "is_public": False, "item_count": 2, "items": [{"id": "7b7a...", "product": {"id": 1, "name": "iPhone 15", "slug": "iphone-15", "short_description": "...", "price": "999.00", "compare_price": "1099.00", "discount_percentage": "9.10", "in_stock": True, "is_featured": True, "is_bestseller": True, "is_new": False, "brand": "apple", "categories": ["phones"], "tags": ["ios"], "created": "2025-01-01T12:00:00Z"}, "created": "2025-01-02T12:00:00Z"}]} )]
+            )
+        },
+    )
     def get(self, request):
         wishlist = get_or_create_user_wishlist(request.user)
         return Response(WishlistSerializer(wishlist, context={'request': request}).data)
@@ -33,7 +43,12 @@ class WishlistRetrieveView(APIView):
 class WishlistSettingsUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(summary="Update wishlist settings", request=WishlistSerializer, responses={200: WishlistSerializer})
+    @extend_schema(
+        summary="Update wishlist settings",
+        description="Update wishlist name and visibility.",
+        request=WishlistSerializer,
+        responses={200: OpenApiResponse(response=WishlistSerializer, description='Updated wishlist', examples=[OpenApiExample(name='UpdateWishlistRequest', value={"name": "Holiday Picks", "is_public": True})])},
+    )
     def patch(self, request):
         wishlist = get_or_create_user_wishlist(request.user)
         serializer = WishlistSerializer(wishlist, data=request.data, partial=True, context={'request': request})
@@ -47,8 +62,9 @@ class WishlistItemCreateView(APIView):
 
     @extend_schema(
         summary="Add product to wishlist",
+        description="Provide either product_slug or product_id to add an item.",
         request=WishlistItemSerializer,
-        responses={201: WishlistItemSerializer},
+        responses={201: OpenApiResponse(response=WishlistItemSerializer, description='Created wishlist item', examples=[OpenApiExample(name='AddItemBySlug', value={"product_slug": "iphone-15"}), OpenApiExample(name='AddItemById', value={"product_id": 1})])},
     )
     def post(self, request):
         wishlist = get_or_create_user_wishlist(request.user)
@@ -61,7 +77,7 @@ class WishlistItemCreateView(APIView):
 class WishlistItemDeleteView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(summary="Remove item from wishlist", responses={204: OpenApiResponse(description='Deleted')})
+    @extend_schema(summary="Remove item from wishlist", description="Delete a specific wishlist item by its id.", responses={204: OpenApiResponse(description='Deleted')})
     def delete(self, request, item_id):
         wishlist = get_or_create_user_wishlist(request.user)
         item = get_object_or_404(WishlistItem, id=item_id, wishlist=wishlist)
@@ -72,7 +88,7 @@ class WishlistItemDeleteView(APIView):
 class WishlistClearView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(summary="Clear wishlist", responses={204: OpenApiResponse(description='Cleared')})
+    @extend_schema(summary="Clear wishlist", description="Remove all items from the current user's wishlist.", responses={204: OpenApiResponse(description='Cleared')})
     def delete(self, request):
         wishlist = get_or_create_user_wishlist(request.user)
         wishlist.clear()
@@ -84,8 +100,9 @@ class WishlistMoveToCartView(APIView):
 
     @extend_schema(
         summary="Move item to cart",
+        description="Moves the wishlist item to the user's cart (if available) or removes it.",
         request={'application/json': {'type': 'object', 'properties': {'quantity': {'type': 'integer', 'default': 1}}}},
-        responses={200: OpenApiResponse(description='Moved to cart and removed from wishlist')},
+        responses={200: OpenApiResponse(description='Moved to cart and removed from wishlist', examples=[OpenApiExample(name='MoveToCart', value={"detail": "Item moved to cart"})])},
     )
     def post(self, request, item_id):
         quantity = int(request.data.get('quantity', 1))
@@ -108,8 +125,9 @@ class PublicWishlistView(APIView):
 
     @extend_schema(
         summary="View a public wishlist",
+        description="View another user's wishlist by user id if it is public.",
         parameters=[OpenApiParameter('user_id', int, OpenApiParameter.PATH, description='User id')],
-        responses={200: WishlistSerializer, 403: OpenApiResponse(description='Wishlist is private')},
+        responses={200: OpenApiResponse(response=WishlistSerializer, description='Public wishlist'), 403: OpenApiResponse(description='Wishlist is private')},
     )
     def get(self, request, user_id):
         user = get_object_or_404(User, id=user_id)
