@@ -1,408 +1,164 @@
 import uuid
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator
 from decimal import Decimal
-from django.utils.text import slugify
 from green_cart_api.users.models import GreenCartBaseModel
+from green_cart_api.catalog.models import Product
 
 
-class Category(GreenCartBaseModel):
+class Cart(GreenCartBaseModel):
     """
-    Product category model for organizing products hierarchically.
+    Shopping cart model for users
     """
-    name = models.CharField(
-        max_length=255,
-        help_text=_("Category name")
-    )
-    slug = models.SlugField(
-        max_length=255,
-        unique=True,
-        blank=True,
-        help_text=_("URL-friendly version of the category name")
-    )
-    description = models.TextField(
-        blank=True,
-        null=True,
-        help_text=_("Detailed description of the category")
-    )
-    parent = models.ForeignKey(
-        'self',
+    user = models.OneToOneField(
+        'users.User',
         on_delete=models.CASCADE,
-        related_name='children',
+        related_name='cart',
+        help_text=_("Cart owner")
+    )
+    session_key = models.CharField(
+        max_length=40,
         blank=True,
         null=True,
-        help_text=_("Parent category for hierarchical structure")
+        help_text=_("Session key for anonymous users")
     )
-    image = models.ImageField(
-        upload_to='category_images/',
-        blank=True,
-        null=True,
-        help_text=_("Category image")
-    )
-    display_order = models.PositiveIntegerField(
-        default=0,
-        help_text=_("Order in which categories are displayed")
-    )
-    is_featured = models.BooleanField(
-        default=False,
-        help_text=_("Whether this category is featured on the homepage")
-    )
-
-    class Meta:
-        verbose_name = _("Category")
-        verbose_name_plural = _("Categories")
-        ordering = ['display_order', 'name']
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
-
-    @property
-    def has_children(self):
-        return self.children.exists()
-
-    def get_all_products(self):
-        """
-        Get all products in this category and its subcategories
-        """
-        from django.db.models import Q
-        categories = [self]
-        categories.extend(self.get_descendants())
-        return Product.objects.filter(categories__in=categories, is_active=True).distinct()
-
-    def get_descendants(self):
-        """
-        Get all descendant categories
-        """
-        descendants = []
-        for child in self.children.all():
-            descendants.append(child)
-            descendants.extend(child.get_descendants())
-        return descendants
-
-
-class Brand(GreenCartBaseModel):
-    """
-    Product brand model
-    """
-    name = models.CharField(
-        max_length=255,
-        unique=True,
-        help_text=_("Brand name")
-    )
-    slug = models.SlugField(
-        max_length=255,
-        unique=True,
-        help_text=_("URL-friendly brand name")
-    )
-    description = models.TextField(
-        blank=True,
-        null=True,
-        help_text=_("Brand description")
-    )
-    logo = models.ImageField(
-        upload_to='brand_logos/',
-        blank=True,
-        null=True,
-        help_text=_("Brand logo")
-    )
-    website = models.URLField(
-        blank=True,
-        null=True,
-        help_text=_("Brand website")
-    )
-
-    class Meta:
-        verbose_name = _("Brand")
-        verbose_name_plural = _("Brands")
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
-
-
-class Tag(GreenCartBaseModel):
-    """
-    Product tags for better search and categorization
-    """
-    name = models.CharField(
-        max_length=100,
-        unique=True,
-        help_text=_("Tag name")
-    )
-    slug = models.SlugField(
-        max_length=100,
-        unique=True,
-        help_text=_("URL-friendly tag name")
-    )
-    description = models.TextField(
-        blank=True,
-        null=True,
-        help_text=_("Tag description")
-    )
-
-    class Meta:
-        verbose_name = _("Tag")
-        verbose_name_plural = _("Tags")
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
-
-
-class Product(GreenCartBaseModel):
-    """
-    Main product model for the catalog.
-    """
-    # Basic Information
-    name = models.CharField(
-        max_length=255,
-        help_text=_("Product name")
-    )
-    slug = models.SlugField(
-        max_length=255,
-        unique=True,
-        blank=True,
-        help_text=_("URL-friendly version of the product name")
-    )
-    description = models.TextField(
-        help_text=_("Detailed product description")
-    )
-    short_description = models.TextField(
-        max_length=500,
-        blank=True,
-        null=True,
-        help_text=_("Brief product description for listings")
-    )
-    
-    # Categorization
-    categories = models.ManyToManyField(
-        Category,
-        related_name='products',
-        help_text=_("Categories this product belongs to")
-    )
-    brand = models.ForeignKey(
-        Brand,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='products',
-        help_text=_("Product brand")
-    )
-    tags = models.ManyToManyField(
-        Tag,
-        related_name='products',
-        blank=True,
-        help_text=_("Product tags")
-    )
-    
-    # Pricing
-    price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.00'))],
-        help_text=_("Current selling price")
-    )
-    compare_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True,
-        validators=[MinValueValidator(Decimal('0.00'))],
-        help_text=_("Original price for showing discounts")
-    )
-    cost_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True,
-        validators=[MinValueValidator(Decimal('0.00'))],
-        help_text=_("Cost price for profit calculation")
-    )
-    
-    # Inventory
-    sku = models.CharField(
-        max_length=100,
-        unique=True,
-        help_text=_("Stock Keeping Unit")
-    )
-    barcode = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        help_text=_("Product barcode")
-    )
-    quantity = models.PositiveIntegerField(
-        default=0,
-        help_text=_("Current stock quantity")
-    )
-    low_stock_threshold = models.PositiveIntegerField(
-        default=5,
-        help_text=_("Alert when stock reaches this level")
-    )
-    track_quantity = models.BooleanField(
+    is_active = models.BooleanField(
         default=True,
-        help_text=_("Whether to track inventory for this product")
-    )
-    allow_backorders = models.BooleanField(
-        default=False,
-        help_text=_("Allow orders when out of stock")
-    )
-    
-    # Shipping
-    weight = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        blank=True,
-        null=True,
-        help_text=_("Product weight in kilograms")
-    )
-    dimensions = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        help_text=_("Product dimensions (LxWxH)")
-    )
-    
-    # SEO and Display
-    meta_title = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text=_("SEO meta title")
-    )
-    meta_description = models.TextField(
-        blank=True,
-        null=True,
-        help_text=_("SEO meta description")
-    )
-    
-    # Status Flags
-    is_featured = models.BooleanField(
-        default=False,
-        help_text=_("Featured product display")
-    )
-    is_bestseller = models.BooleanField(
-        default=False,
-        help_text=_("Mark as bestseller")
-    )
-    is_new = models.BooleanField(
-        default=False,
-        help_text=_("Mark as new product")
+        help_text=_("Whether the cart is active")
     )
 
     class Meta:
-        verbose_name = _("Product")
-        verbose_name_plural = _("Products")
-        ordering = ['-created', 'name']
+        verbose_name = _("Cart")
+        verbose_name_plural = _("Carts")
+        ordering = ['-created']
 
     def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        if not self.sku:
-            self.sku = f"GC{uuid.uuid4().hex[:8].upper()}"
-        super().save(*args, **kwargs)
+        return f"Cart for {self.user.email if self.user else 'Anonymous'}"
 
     @property
-    def discount_percentage(self):
-        """Calculate discount percentage if compare_price exists"""
-        if self.compare_price and self.compare_price > self.price:
-            discount = ((self.compare_price - self.price) / self.compare_price) * 100
-            return round(discount, 2)
-        return 0
+    def item_count(self):
+        """Total number of items in cart"""
+        return sum(item.quantity for item in self.items.all())
 
     @property
-    def in_stock(self):
-        """Check if product is in stock"""
-        if not self.track_quantity:
-            return True
-        return self.quantity > 0
+    def total_price(self):
+        """Total price of all items in cart"""
+        return sum(item.total_price for item in self.items.all())
 
     @property
-    def is_low_stock(self):
-        """Check if product is low in stock"""
-        if not self.track_quantity:
-            return False
-        return self.quantity <= self.low_stock_threshold
+    def total_weight(self):
+        """Total weight of all items in cart"""
+        return sum(item.total_weight for item in self.items.all())
 
-    @property
-    def primary_image(self):
-        """Get the primary product image"""
-        primary = self.images.filter(is_primary=True).first()
-        if primary:
-            return primary
-        return self.images.first()
+    def add_item(self, product, quantity=1):
+        """Add product to cart or update quantity if already exists"""
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=self,
+            product=product,
+            defaults={'quantity': quantity}
+        )
+        if not created:
+            cart_item.quantity += quantity
+            cart_item.save()
+        return cart_item
 
-    def get_average_rating(self):
-        """Calculate average rating from reviews"""
-        from django.db.models import Avg
-        return self.reviews.aggregate(avg_rating=Avg('rating'))['avg_rating'] or 0
+    def remove_item(self, product):
+        """Remove product from cart"""
+        self.items.filter(product=product).delete()
 
-    def get_review_count(self):
-        """Get total number of reviews"""
-        return self.reviews.count()
+    def update_item_quantity(self, product, quantity):
+        """Update quantity of a specific product in cart"""
+        if quantity <= 0:
+            self.remove_item(product)
+        else:
+            cart_item = self.items.filter(product=product).first()
+            if cart_item:
+                cart_item.quantity = quantity
+                cart_item.save()
+            else:
+                self.add_item(product, quantity)
+
+    def clear(self):
+        """Clear all items from cart"""
+        self.items.all().delete()
+
+    def contains_product(self, product):
+        """Check if product is in cart"""
+        return self.items.filter(product=product).exists()
+
+    def get_item(self, product):
+        """Get cart item for specific product"""
+        return self.items.filter(product=product).first()
 
 
-class ProductImage(GreenCartBaseModel):
+class CartItem(GreenCartBaseModel):
     """
-    Product images model for storing multiple images per product.
+    Individual items in shopping cart
     """
+    cart = models.ForeignKey(
+        Cart,
+        on_delete=models.CASCADE,
+        related_name='items',
+        help_text=_("Parent cart")
+    )
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
-        related_name='images',
-        help_text=_("Product these images belong to")
+        related_name='cart_items',
+        help_text=_("Product in cart")
     )
-    image = models.ImageField(
-        upload_to='product_images/',
-        help_text=_("Product image")
+    quantity = models.PositiveIntegerField(
+        default=1,
+        validators=[MinValueValidator(1)],
+        help_text=_("Quantity of product")
     )
-    alt_text = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text=_("Alternative text for accessibility")
-    )
-    is_primary = models.BooleanField(
-        default=False,
-        help_text=_("Set as primary product image")
-    )
-    display_order = models.PositiveIntegerField(
-        default=0,
-        help_text=_("Order in which images are displayed")
+    price_at_time = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text=_("Price when added to cart")
     )
 
     class Meta:
-        verbose_name = _("Product Image")
-        verbose_name_plural = _("Product Images")
-        ordering = ['is_primary', 'display_order', 'created']
+        verbose_name = _("Cart Item")
+        verbose_name_plural = _("Cart Items")
+        unique_together = ['cart', 'product']
+        ordering = ['-created']
 
     def __str__(self):
-        return f"Image for {self.product.name}"
+        return f"{self.product.name} x{self.quantity} in cart"
 
     def save(self, *args, **kwargs):
-        # Ensure only one primary image per product
-        if self.is_primary:
-            ProductImage.objects.filter(
-                product=self.product, 
-                is_primary=True
-            ).update(is_primary=False)
+        # Store the current price when adding to cart
+        if not self.price_at_time:
+            self.price_at_time = self.product.price
         super().save(*args, **kwargs)
+
+    @property
+    def total_price(self):
+        """Total price for this cart item"""
+        return self.price_at_time * self.quantity
+
+    @property
+    def total_weight(self):
+        """Total weight for this cart item"""
+        if self.product.weight:
+            return self.product.weight * self.quantity
+        return Decimal('0.00')
+
+    @property
+    def is_available(self):
+        """Check if product is still available"""
+        if not self.product.track_quantity:
+            return True
+        return self.product.quantity >= self.quantity
+
+    @property
+    def price_difference(self):
+        """Price difference between cart price and current price"""
+        return self.product.price - self.price_at_time
+
+    def move_to_wishlist(self, wishlist):
+        """Move this item to wishlist"""
+        wishlist.add_product(self.product)
+        self.delete()

@@ -9,11 +9,17 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiRespon
 
 from green_cart_api.wishlist.models import Wishlist, WishlistItem
 from green_cart_api.catalog.models import Product
+from green_cart_api.cart.models import Cart
 from ..serializers import WishlistSerializer, WishlistItemSerializer
 
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+
+def get_or_create_user_cart(user):
+    cart, _ = Cart.objects.get_or_create(user=user)
+    return cart
 
 
 def get_or_create_user_wishlist(user):
@@ -110,13 +116,16 @@ class WishlistMoveToCartView(APIView):
             quantity = 1
         wishlist = get_or_create_user_wishlist(request.user)
         item = get_object_or_404(WishlistItem, id=item_id, wishlist=wishlist)
-        # Assuming there is a cart service; using WishlistItem.move_to_cart signature
-        try:
-            # Defer cart implementation; call domain method if available
-            item.move_to_cart(cart=request.user.cart, quantity=quantity)  # type: ignore[attr-defined]
-        except Exception:
-            # Fallback: just delete item if cart is not available
-            item.delete()
+        
+        # Get or create user's cart
+        cart = get_or_create_user_cart(request.user)
+        
+        # Move item to cart
+        cart.add_item(item.product, quantity)
+        
+        # Remove from wishlist
+        item.delete()
+        
         return Response({'detail': 'Item moved to cart'}, status=status.HTTP_200_OK)
 
 
