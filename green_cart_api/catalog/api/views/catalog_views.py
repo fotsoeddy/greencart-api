@@ -158,7 +158,7 @@ class TagListView(APIView):
 
     @extend_schema(summary="List tags", description="Returns all active tags.", responses={200: TagSerializer(many=True)})
     def get(self, request):
-        queryset = Tag.objects.filter(is_active=True).order_by('name')
+        queryset = Tag.objects.order_by('name')
         data = TagSerializer(queryset, many=True, context={'request': request}).data
         return Response(data)
 
