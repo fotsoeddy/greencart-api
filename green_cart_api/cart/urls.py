@@ -1,21 +1,18 @@
 # green_cart_api/cart/urls.py
 
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .api.views.cart_views import CartViewSet
+from django.urls import path
+from .api.views.cart_views import (
+    MyCartView, AddItemView, RemoveItemView, UpdateQuantityView, ClearCartView
+)
 
-app_name = 'carts'  # Changez en pluriel pour cohérence
-
-router = DefaultRouter()
-router.register(r'', CartViewSet, basename='cart')  # Enregistre le ViewSet sans préfixe supplémentaire
+app_name = 'carts'
 
 urlpatterns = [
-    path('', include(router.urls)),  # Inclut les URL auto-générées : / (list/create), /<pk>/ (detail/update/delete)
-    
-    # Actions personnalisées (si non gérées par le router, ajoutez-les manuellement)
-    path('my-cart/', CartViewSet.as_view({'get': 'get_my_cart'}), name='my-cart'),
-    path('<int:pk>/add-item/', CartViewSet.as_view({'post': 'add_item'}), name='add-item'),
-    path('<int:pk>/remove-item/', CartViewSet.as_view({'post': 'remove_item'}), name='remove-item'),
-    path('<int:pk>/update-quantity/', CartViewSet.as_view({'post': 'update_quantity'}), name='update-quantity'),
-    path('<int:pk>/clear/', CartViewSet.as_view({'post': 'clear_cart'}), name='clear-cart'),
+    path('my-cart/', MyCartView.as_view(), name='my-cart'),
+    path('<int:pk>/add-item/', AddItemView.as_view(), name='add-item'),
+    path('<int:pk>/remove-item/', RemoveItemView.as_view(), name='remove-item'),
+    path('<int:pk>/update-quantity/', UpdateQuantityView.as_view(), name='update-quantity'),
+    path('<int:pk>/clear/', ClearCartView.as_view(), name='clear-cart'),
+    # Si vous voulez un endpoint pour récupérer les détails du panier (GET /<pk>/), ajoutez :
+    # path('<int:pk>/', CartDetailView.as_view({'get': 'get'}), name='cart-detail'),
 ]
