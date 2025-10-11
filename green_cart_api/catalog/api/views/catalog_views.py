@@ -282,7 +282,43 @@ class ProductListView(APIView):
         summary="Create product",
         description="Admin only. Creates a product with relationships by ids/slugs.",
         request=ProductDetailSerializer,
-        responses={201: OpenApiResponse(response=ProductDetailSerializer, description='Created product')},
+        responses={
+            201: OpenApiResponse(
+                response=ProductDetailSerializer, 
+                description='Created product',
+                examples=[
+                    OpenApiExample(
+                        "Create product request",
+                        summary="Create new product",
+                        description="Request body for creating a new product",
+                        value={
+                            "name": "iPhone 15 Pro",
+                            "description": "The latest iPhone with advanced features",
+                            "short_description": "Latest iPhone model",
+                            "price": "999.00",
+                            "compare_price": "1099.00",
+                            "cost_price": "800.00",
+                            "quantity": 100,
+                            "low_stock_threshold": 10,
+                            "track_quantity": True,
+                            "allow_backorders": False,
+                            "weight": "0.2",
+                            "dimensions": "15.5 x 7.6 x 0.8 cm",
+                            "meta_title": "iPhone 15 Pro - Latest Apple Phone",
+                            "meta_description": "Buy the latest iPhone 15 Pro with advanced camera and performance",
+                            "is_featured": True,
+                            "is_bestseller": False,
+                            "is_new": True,
+                            "brand": 1,
+                            "categories": [1, 2],
+                            "tags": [1, 2]
+                        },
+                        request_only=True,
+                    )
+                ]
+            ),
+            403: OpenApiResponse(description="Admin access required")
+        },
     )
     def post(self, request):
         if not IsAdminUser().has_permission(request, self):
@@ -296,7 +332,71 @@ class ProductListView(APIView):
 class ProductDetailView(APIView):
     permission_classes = [AllowAny]
 
-    @extend_schema(summary="Retrieve product", description="Get detailed product by slug.", responses={200: ProductDetailSerializer})
+    @extend_schema(
+        summary="Retrieve product", 
+        description="Get detailed product by slug.", 
+        responses={
+            200: OpenApiResponse(
+                response=ProductDetailSerializer,
+                description="Product details",
+                examples=[
+                    OpenApiExample(
+                        "Product details",
+                        summary="Detailed product information",
+                        description="Complete product information including images, categories, and pricing",
+                        value={
+                            "id": 1,
+                            "name": "iPhone 15",
+                            "slug": "iphone-15",
+                            "description": "The latest iPhone with advanced features and improved camera system.",
+                            "short_description": "Latest iPhone model with advanced features",
+                            "price": "999.00",
+                            "compare_price": "1099.00",
+                            "cost_price": "800.00",
+                            "quantity": 50,
+                            "low_stock_threshold": 10,
+                            "track_quantity": True,
+                            "allow_backorders": False,
+                            "weight": "0.2",
+                            "dimensions": "15.5 x 7.6 x 0.8 cm",
+                            "meta_title": "iPhone 15 - Latest Apple Phone",
+                            "meta_description": "Buy the latest iPhone 15 with advanced camera and performance",
+                            "is_featured": True,
+                            "is_bestseller": True,
+                            "is_new": True,
+                            "brand": {
+                                "id": 1,
+                                "name": "Apple",
+                                "slug": "apple"
+                            },
+                            "categories": [
+                                {
+                                    "id": 1,
+                                    "name": "Smartphones",
+                                    "slug": "smartphones"
+                                }
+                            ],
+                            "tags": [
+                                {
+                                    "id": 1,
+                                    "name": "iOS",
+                                    "slug": "ios"
+                                }
+                            ],
+                            "images": [],
+                            "primary_image": None,
+                            "in_stock": True,
+                            "is_low_stock": False,
+                            "discount_percentage": "9.10",
+                            "created": "2024-01-01T12:00:00Z"
+                        },
+                        response_only=True,
+                    )
+                ]
+            ),
+            404: OpenApiResponse(description="Product not found")
+        }
+    )
     def get(self, request, slug):
         product = get_object_or_404(Product, slug=slug, is_active=True)
         return Response(ProductDetailSerializer(product, context={'request': request}).data)
