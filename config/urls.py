@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/', include('green_cart_api.users.urls', namespace='users')),
     path('api/catalog/', include('green_cart_api.catalog.urls', namespace='catalog')),
     path('api/wishlist/', include('green_cart_api.wishlist.urls', namespace='wishlist')),
+   path('api/carts/', include('green_cart_api.cart.urls', namespace='carts')),
     path('accounts/', include('allauth.urls')),
     path(
         'api/schema/',
