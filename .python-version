@@ -1,1 +1,22 @@
 3.12
+
+// {
+//   "shipping_address": "c0629596-3701-42ec-ab67-c1a0f1e16c7e",
+//   "billing_address_same": true,
+//   "customer_note": "Livraison rapide s'il vous plaît",
+//   "items": [
+//     {
+//       "product_id": "cbdc5d8e-1c20-4379-84de-ec3f8d28cddf",
+//       "quantity": 2
+//     },
+//     {
+//       "product_id": "a09680bc-20fb-4720-9acf-63379112c73b",
+//       "quantity": 1
+//     }
+//   ],
+//   "discount_amount": "5.00",
+//   "tax_amount": "2.50",
+//   "shipping_cost": "10.00",
+//   "shipping_method": "Standard",
+//   "estimated_delivery": "2025-10-15"
+// }
