@@ -17,6 +17,7 @@ from green_cart_api.global_data.email import EmailUtil
 from django.conf import settings
 from django.core.cache import cache
 from urllib.parse import urlencode
+from green_cart_api.users.api.tasks.email_tasks import send_welcome_email
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -250,6 +251,15 @@ class VerifyEmailView(APIView):
             serializer = EmailVerificationSerializer(data={'token': token, 'email': email})
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
+            
+            # Send welcome email asynchronously using Celery
+            try:
+                send_welcome_email.delay(user.id)
+                logger.info(f"Welcome email task queued for user {user.id} ({user.email})")
+            except Exception as e:
+                logger.error(f"Failed to queue welcome email task for user {user.id}: {str(e)}")
+                # Don't fail the verification if welcome email fails
+            
             logger.info("Email verified successfully for: %s", user.email)
             return Response({
                 'message': _('Email verified successfully.'),

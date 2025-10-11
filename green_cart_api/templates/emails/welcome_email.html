@@ -1,0 +1,36 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+<p>Dear {{ first_name }},</p>
+
+<p>Welcome to <strong>{{ site_name }}</strong>! We're thrilled to have you join our community of eco-conscious shoppers.</p>
+
+<p>Your account has been successfully created and verified. You now have access to:</p>
+
+<ul style="margin: 20px 0; padding-left: 20px;">
+    <li>🛒 Browse our extensive catalog of sustainable products</li>
+    <li>💚 Add items to your wishlist for future purchases</li>
+    <li>⭐ Leave reviews and ratings for products you've tried</li>
+    <li>🎁 Enjoy exclusive promotions and discounts</li>
+    <li>📱 Track your orders and manage your account</li>
+</ul>
+
+<p>To get started, we recommend:</p>
+<ol style="margin: 20px 0; padding-left: 20px;">
+    <li>Complete your profile to personalize your shopping experience</li>
+    <li>Explore our featured products and bestsellers</li>
+    <li>Subscribe to our newsletter for the latest eco-friendly products and tips</li>
+</ol>
+
+<p>If you have any questions or need assistance, our customer support team is here to help. You can reach us at <a href="mailto:support@greencart.com">support@greencart.com</a> or through our help center.</p>
+
+<p>Thank you for choosing to shop sustainably with us!</p>
+
+<p>Best regards,<br>
+<strong>The {{ site_name }} Team</strong></p>
+
+<div style="margin-top: 30px; padding: 20px; background-color: #e8f5e8; border-radius: 5px; border-left: 4px solid #28a745;">
+    <h3 style="margin-top: 0; color: #28a745;">🌱 Start Your Green Journey</h3>
+    <p style="margin-bottom: 0;">Visit our <a href="{{ site_url }}" style="color: #28a745; font-weight: bold;">homepage</a> to discover amazing eco-friendly products and begin your sustainable shopping experience today!</p>
+</div>
+{% endblock %}

@@ -297,7 +297,7 @@ LOGGING = {
     "root": {"level": "INFO", "handlers": ["console"]},
 }
 
-REDIS_URL = env("REDIS_URL", default="redis://redis:6379/0")
+REDIS_URL = config("REDIS_URL", default="redis://redis:6379/3")
 REDIS_SSL = REDIS_URL.startswith("rediss://")
 
 # Celery
