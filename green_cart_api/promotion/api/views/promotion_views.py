@@ -11,6 +11,9 @@ from django.db.models import Q, F
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 
+# Import the Celery task (adjust path if needed)
+from green_cart_api.promotion.api.tasks.send_mail_promotions_available_tasks import send_new_promotion_emails
+
 class PromotionListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -123,7 +126,9 @@ class PromotionListCreateView(APIView):
         
         serializer = PromotionSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            promotion = serializer.save()
+            # Trigger the Celery task to send emails asynchronously
+            send_new_promotion_emails.delay(promotion.id)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

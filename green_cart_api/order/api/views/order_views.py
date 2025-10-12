@@ -11,7 +11,7 @@ from green_cart_api.order.models import Order, OrderItem
 from green_cart_api.order.api.serializers.order_serializers import OrderSerializer, OrderItemSerializer
 from green_cart_api.catalog.models import Product  # For potential item creation
 from decimal import Decimal
-from global_data.enm import OrderStatus
+from ....global_data.enm import OrderStatus
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
 
