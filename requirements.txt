@@ -51,4 +51,21 @@ whitenoise==6.11.0
 # }
 
 
+# celery -A config.celery_app beat -l info
+# celery -A config.celery_app worker -l info
 
+# {add an order
+#   "shipping_address": "c0629596-3701-42ec-ab67-c1a0f1e16c7e",
+#   "billing_address_same": true,
+#   "customer_note": "Please handle with care",
+#   "items": [
+#     {
+#       "product_id": "cbdc5d8e-1c20-4379-84de-ec3f8d28cddf",
+#       "quantity": 200
+#     },
+#     {
+#       "product_id": "0603b162-5c36-4a0f-b78c-9078405bb7f6",
+#       "quantity": 100
+#     }
+#   ]
+# }

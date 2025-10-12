@@ -2,6 +2,7 @@ import os
 
 from celery import Celery
 from celery.signals import setup_logging
+from celery.schedules import crontab     
 
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
@@ -26,3 +27,14 @@ def config_loggers(*args, **kwargs):
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
+
+
+# In your Celery app configuration (e.g., celery_app.py)
+
+        
+app.conf.beat_schedule = {
+    'send-pending-order-reminders-every-morning': {
+        'task': 'green_cart_api.order.api.tasks.send_confirmation_email_tasks.check_and_send_pending_reminders',
+        'schedule': crontab(hour=8, minute=0),  # Runs every day at 8:00 AM
+    },
+}
