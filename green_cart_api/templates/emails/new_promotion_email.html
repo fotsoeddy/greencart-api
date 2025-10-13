@@ -1,0 +1,72 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+    <p>Dear {{ first_name }},</p>
+
+    <p>We're thrilled to announce an exciting new promotion at <strong>{{ site_name }}</strong>! Take advantage of this limited-time offer to save on your sustainable shopping.</p>
+
+    <h2>🎉 New Promotion: {{ promotion.name }}</h2>
+    <p><strong>Description:</strong> {{ promotion.description|default:"N/A" }}</p>
+    <p><strong>Discount:</strong> 
+        {% if promotion.discount_type == 'percentage' %}
+            {{ promotion.discount_value }}% off
+        {% else %}
+            ${{ promotion.discount_value|floatformat:2 }} off
+        {% endif %}
+    </p>
+    <p><strong>Valid From:</strong> {{ promotion.start_date|date:"F j, Y" }} <strong>To:</strong> {{ promotion.end_date|date:"F j, Y" }}</p>
+    
+    {% if promotion.coupon_code %}
+        <p style="font-size: 1.2em; color: #28a745; margin: 15px 0; padding: 10px; background-color: #e8f5e8; border-radius: 5px; text-align: center;">
+            <strong>Coupon Code:</strong> <code style="background-color: #fff; padding: 2px 6px; border: 1px solid #ccc; border-radius: 3px;">{{ promotion.coupon_code }}</code>
+        </p>
+    {% else %}
+        <p style="color: #28a745;"><strong>No code required</strong> – discount applies automatically at checkout!</p>
+    {% endif %}
+
+    {% if promotion.minimum_purchase_amount > 0 %}
+        <p><strong>Minimum Purchase:</strong> ${{ promotion.minimum_purchase_amount|floatformat:2 }}</p>
+    {% endif %}
+    {% if promotion.minimum_quantity %}
+        <p><strong>Minimum Quantity:</strong> {{ promotion.minimum_quantity }} items</p>
+    {% endif %}
+    {% if promotion.maximum_discount_amount > 0 %}
+        <p><strong>Maximum Discount:</strong> ${{ promotion.maximum_discount_amount|floatformat:2 }}</p>
+    {% endif %}
+
+    {% if promotion.scope != 'all' %}
+        <h3>📋 Applies To:</h3>
+        <ul style="margin: 10px 0; padding-left: 20px;">
+            {% if promotion.scope == 'products' and promotion.products.all %}
+                {% for product in promotion.products.all %}
+                    <li>{{ product.name|default:"N/A" }}</li>
+                {% endfor %}
+            {% elif promotion.scope == 'categories' and promotion.categories.all %}
+                {% for category in promotion.categories.all %}
+                    <li>{{ category.name|default:"N/A" }}</li>
+                {% endfor %}
+            {% elif promotion.scope == 'brands' and promotion.brands.all %}
+                {% for brand in promotion.brands.all %}
+                    <li>{{ brand.name|default:"N/A" }}</li>
+                {% endfor %}
+            {% endif %}
+        </ul>
+    {% else %}
+        <p><strong>Applies to:</strong> All eligible products</p>
+    {% endif %}
+
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ site_url }}/promotions" style="display: inline-block; padding: 12px 25px; background-color: #28a745; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 1.1em;">
+            🛒 Shop Now & Save!
+        </a>
+    </div>
+
+    <p style="text-align: center; font-size: 0.9em; color: #6c757d;">
+        This promotion is subject to terms and conditions. Limited quantities may apply. For full details, visit our <a href="{{ site_url }}/promotions/{{ promotion.id }}">promotion page</a>.
+    </p>
+
+    <p>If you have any questions, contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a> or [Your Support Phone Number].</p>
+
+    <p>Happy shopping!</p>
+    <p>The <strong>{{ site_name }}</strong> Team</p>
+{% endblock %}
