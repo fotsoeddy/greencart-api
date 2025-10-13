@@ -1,10 +1,15 @@
-# green_cart_api/order/api/tasks/send_confirmation_email_tasks.py
-
 from celery import shared_task
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
 from django.utils import timezone
 from datetime import timedelta
 from green_cart_api.order.models import Order  # Adjust import if needed based on your project structure
+from django.conf import settings  # Import for EMAIL_HOST_USER
+
+# Hardcoded site details (move to settings.py in production)
+SITE_NAME = 'Green Cart'
+SITE_URL = 'https://www.greencart.com'
+SUPPORT_EMAIL = 'support@greencart.com'
 
 @shared_task
 def send_order_confirmation_email(order_id):
@@ -13,9 +18,17 @@ def send_order_confirmation_email(order_id):
     """
     try:
         order = Order.objects.get(id=order_id)
+        first_name = order.user.first_name or order.user.username  # Fallback to username if first_name not available
         subject = 'Order Confirmation'
-        message = f'Dear {order.user.username},\n\nYour order #{order.id} has been successfully created.\n\nDetails:\n- Status: {order.status}\n- Total: ${order.total}\n\nThank you for shopping with us!'
-        send_mail(subject, message, 'no-reply@yourdomain.com', [order.user.email], fail_silently=False)
+        plain_message = f'Dear {first_name},\n\nYour order #{order.id} has been successfully created.\n\nDetails:\n- Status: {order.status}\n- Total: ${order.total}\n\nThank you for shopping with us!'
+        html_message = render_to_string('emails/order_email.html', {
+            'first_name': first_name,
+            'order': order,
+            'site_name': SITE_NAME,
+            'site_url': SITE_URL,
+            'support_email': SUPPORT_EMAIL,
+        })
+        send_mail(subject, plain_message, settings.EMAIL_HOST_USER, [order.user.email], html_message=html_message, fail_silently=False)
     except Order.DoesNotExist:
         pass  # Log error if needed
 
@@ -26,9 +39,17 @@ def send_order_cancellation_email(order_id):
     """
     try:
         order = Order.objects.get(id=order_id)
+        first_name = order.user.first_name or order.user.username
         subject = 'Order Cancellation Notice'
-        message = f'Dear {order.user.username},\n\nYour order #{order.id} has been cancelled.\n\nIf this was not intentional, please contact support.\n\nThank you.'
-        send_mail(subject, message, 'no-reply@yourdomain.com', [order.user.email], fail_silently=False)
+        plain_message = f'Dear {first_name},\n\nYour order #{order.id} has been cancelled.\n\nIf this was not intentional, please contact support.\n\nThank you.'
+        html_message = render_to_string('emails/order_cancellation.html', {
+            'first_name': first_name,
+            'order': order,
+            'site_name': SITE_NAME,
+            'site_url': SITE_URL,
+            'support_email': SUPPORT_EMAIL,
+        })
+        send_mail(subject, plain_message, settings.EMAIL_HOST_USER, [order.user.email], html_message=html_message, fail_silently=False)
     except Order.DoesNotExist:
         pass  # Log error if needed
 
@@ -40,9 +61,17 @@ def send_order_update_email(order_id):
     """
     try:
         order = Order.objects.get(id=order_id)
+        first_name = order.user.first_name or order.user.username
         subject = 'Order Update Notification'
-        message = f'Dear {order.user.username},\n\nYour order #{order.id} has been updated.\n\nNew Status: {order.status}\nNew Total: ${order.total}\n\nPlease review your order details.'
-        send_mail(subject, message, 'no-reply@yourdomain.com', [order.user.email], fail_silently=False)
+        plain_message = f'Dear {first_name},\n\nYour order #{order.id} has been updated.\n\nNew Status: {order.status}\nNew Total: ${order.total}\n\nPlease review your order details.'
+        html_message = render_to_string('emails/order_update.html', {
+            'first_name': first_name,
+            'order': order,
+            'site_name': SITE_NAME,
+            'site_url': SITE_URL,
+            'support_email': SUPPORT_EMAIL,
+        })
+        send_mail(subject, plain_message, settings.EMAIL_HOST_USER, [order.user.email], html_message=html_message, fail_silently=False)
     except Order.DoesNotExist:
         pass  # Log error if needed
 
@@ -53,9 +82,17 @@ def send_pending_order_reminder_email(order_id):
     """
     try:
         order = Order.objects.get(id=order_id)
+        first_name = order.user.first_name or order.user.username
         subject = 'Pending Order Reminder'
-        message = f'Dear {order.user.username},\n\nYour order #{order.id} is still pending and was created on {order.created.date()}.\n\nPlease complete your payment or contact support if needed.\n\nThank you.'
-        send_mail(subject, message, 'no-reply@yourdomain.com', [order.user.email], fail_silently=False)
+        plain_message = f'Dear {first_name},\n\nYour order #{order.id} is still pending and was created on {order.created.date()}.\n\nPlease complete your payment or contact support if needed.\n\nThank you.'
+        html_message = render_to_string('emails/order_pending_reminder.html', {
+            'first_name': first_name,
+            'order': order,
+            'site_name': SITE_NAME,
+            'site_url': SITE_URL,
+            'support_email': SUPPORT_EMAIL,
+        })
+        send_mail(subject, plain_message, settings.EMAIL_HOST_USER, [order.user.email], html_message=html_message, fail_silently=False)
     except Order.DoesNotExist:
         pass  # Log error if needed
 

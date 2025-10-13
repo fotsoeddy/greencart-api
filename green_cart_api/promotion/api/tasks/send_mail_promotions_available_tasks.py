@@ -1,6 +1,9 @@
 # green_cart_api/promotion/api/tasks/send_mail_promotions_available_tasks.py
 
 from celery import shared_task
+import logging
+
+logger = logging.getLogger(__name__)
 
 @shared_task
 def send_new_promotion_emails(promotion_id):
@@ -17,11 +20,13 @@ def send_new_promotion_emails(promotion_id):
     try:
         promotion = Promotion.objects.get(id=promotion_id)
         if not promotion.is_active or not promotion.is_valid:
-            # Skip if the promotion is not active or valid
+            logger.info(f"Skipping promotion {promotion_id}: Active={promotion.is_active}, Valid={promotion.is_valid}")
             return
 
         # Get all active users with email addresses (assuming we send to customers)
         users = User.objects.filter(is_active=True, email__isnull=False).exclude(email='')
+
+        logger.info(f"Found {users.count()} active users for promotion {promotion_id}")
 
         # Prepare email messages for mass sending
         messages = []
@@ -44,11 +49,13 @@ def send_new_promotion_emails(promotion_id):
 
         # Send mass emails for efficiency
         if messages:
+            logger.info(f"Sending {len(messages)} emails for promotion {promotion_id}")
             send_mass_mail(messages, fail_silently=False)
+        else:
+            logger.info(f"No emails to send for promotion {promotion_id}")
 
     except Promotion.DoesNotExist:
-        # Handle case where promotion was deleted before task runs
+        logger.warning(f"Promotion {promotion_id} not found")
         pass
     except Exception as e:
-        # Log the error (assuming Celery handles logging, or add custom logging)
-        print(f"Error sending promotion emails: {str(e)}")
+        logger.error(f"Error sending promotion emails: {str(e)}")

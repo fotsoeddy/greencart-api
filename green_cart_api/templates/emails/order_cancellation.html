@@ -1,0 +1,26 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+<p>Dear {{ first_name }},</p>
+
+<p>We're sorry to inform you that your order #{{ order.id }} with <strong>{{ site_name }}</strong> has been cancelled.</p>
+
+<p>If this cancellation was not intentional or if you need assistance, please contact our support team right away.</p>
+
+<p>Order Details (for reference):</p>
+
+<ul style="margin: 20px 0; padding-left: 20px;">
+    <li>🛒 Status: <strong>{{ order.status }}</strong></li>
+    <li>💰 Total: <strong>${{ order.total }}</strong></li>
+</ul>
+
+<p>Reach us at <a href="mailto:{{ support_email }}">{{ support_email }}</a> or through our help center.</p>
+
+<p>Best regards,<br>
+<strong>The {{ site_name }} Team</strong></p>
+
+<div style="margin-top: 30px; padding: 20px; background-color: #e8f5e8; border-radius: 5px; border-left: 4px solid #28a745;">
+    <h3 style="margin-top: 0; color: #28a745;">🛍️ Shop Again</h3>
+    <p style="margin-bottom: 0;">Explore more eco-friendly products on our <a href="{{ site_url }}" style="color: #28a745; font-weight: bold;">homepage</a> and start a new order today!</p>
+</div>
+{% endblock %}

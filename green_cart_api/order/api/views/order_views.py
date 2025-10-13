@@ -1,6 +1,3 @@
-# green_cart_api/order/api/views/order_views.py
-# (Modified version with task triggers added)
-
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
 from rest_framework import status
