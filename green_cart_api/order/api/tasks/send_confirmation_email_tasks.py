@@ -5,6 +5,9 @@ from django.utils import timezone
 from datetime import timedelta
 from green_cart_api.order.models import Order  # Adjust import if needed based on your project structure
 from django.conf import settings  # Import for EMAIL_HOST_USER
+import logging  # Added for debugging
+
+logger = logging.getLogger(__name__)  # Added for debugging
 
 # Hardcoded site details (move to settings.py in production)
 SITE_NAME = 'Green Cart'
@@ -17,10 +20,15 @@ def send_order_confirmation_email(order_id):
     Send confirmation email when an order is created.
     """
     try:
-        order = Order.objects.get(id=order_id)
+        order = Order.objects.select_related('user').prefetch_related('items__product').get(id=order_id)
         first_name = order.user.first_name or order.user.username  # Fallback to username if first_name not available
         subject = 'Order Confirmation'
         plain_message = f'Dear {first_name},\n\nYour order #{order.id} has been successfully created.\n\nDetails:\n- Status: {order.status}\n- Total: ${order.total}\n\nThank you for shopping with us!'
+        
+        # Added logging for debugging
+        logger.info(f"Preparing to render template for order {order_id}")
+        logger.info(f"Order items type: {type(order.items)}, count: {order.items.count()}")
+        
         html_message = render_to_string('emails/order_email.html', {
             'first_name': first_name,
             'order': order,
@@ -28,9 +36,19 @@ def send_order_confirmation_email(order_id):
             'site_url': SITE_URL,
             'support_email': SUPPORT_EMAIL,
         })
+        
+        # Added logging for debugging
+        logger.info(f"Sending email to {order.user.email} with subject '{subject}'")
+        
         send_mail(subject, plain_message, settings.EMAIL_HOST_USER, [order.user.email], html_message=html_message, fail_silently=False)
+        
+        # Added logging for debugging
+        logger.info("Email sent successfully")
     except Order.DoesNotExist:
+        logger.error(f"Order {order_id} does not exist")  # Updated with logging
         pass  # Log error if needed
+    except Exception as e:
+        logger.error(f"Error sending email for order {order_id}: {str(e)}")  # Added for debugging
 
 @shared_task
 def send_order_cancellation_email(order_id):
