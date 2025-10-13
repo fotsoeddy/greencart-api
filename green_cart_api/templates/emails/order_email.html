@@ -1,0 +1,130 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+    <p>Dear {{ first_name }},</p>
+
+    <p>Thank you for choosing **{{ site_name }}** for your sustainable shopping! We've successfully received your order and it's being prepared for shipment.</p>
+
+    <h2>🛍️ Order Confirmation (Placed on {{ order.created|date:"F j, Y, P" }})</h2>
+    <p><strong>Order Number:</strong> **#{{ order.order_number|default:order.id }}**</p>
+    <p><strong>Status:</strong> <span style="font-weight: bold; color: #007bff;">{{ order.status|upper }}</span></p>
+    <p><strong>Payment Status:</strong> {{ order.payment_status|default:"Pending" }}</p>
+    
+    {% comment %} Ajout de la date de livraison estimée pour un meilleur service client {% endcomment %}
+    {% if order.estimated_delivery %}
+        <p style="font-size: 1.1em; color: #28a745; margin-top: 15px;">
+            **Estimated Delivery:** **{{ order.estimated_delivery|date:"l, F j" }}** ({{ order.shipping_method|default:'Standard' }})
+        </p>
+    {% endif %}
+
+    {% if order.tracking_number %}
+        <p><strong>Tracking Number:</strong> <a href="[Lien de suivi transporteur]">{{ order.tracking_number }}</a></p>
+    {% endif %}
+
+    ---
+
+    <h2>📦 Items Ordered</h2>
+    <table border="1" cellpadding="10" cellspacing="0" width="100%" style="border-collapse: collapse; margin-bottom: 20px;">
+        <thead>
+            <tr style="background-color: #f2f2f2;">
+                <th align="left">Product</th>
+                <th align="center">Qty</th>
+                <th align="right">Unit Price</th>
+                <th align="right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items.all %}
+            <tr>
+                <td align="left">{{ item.product.name|default:"N/A" }}</td>
+                <td align="center">{{ item.quantity }}</td>
+                <td align="right">${{ item.unit_price|floatformat:2 }}</td>
+                <td align="right">${{ item.total_price|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" align="center">No items found for this order.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    ---
+
+    <h2>💰 Order Summary</h2>
+    <table border="0" cellpadding="5" cellspacing="0" width="100%" style="margin-bottom: 20px;">
+        <tr>
+            <td align="right" width="70%">Subtotal ({{ order.items_count|default:0 }} items):</td>
+            <td align="right" width="30%"><strong>${{ order.subtotal|floatformat:2 }}</strong></td>
+        </tr>
+        {% if order.discount_amount > 0 %}
+        <tr style="color: #dc3545;">
+            <td align="right">Discount:</td>
+            <td align="right">-${{ order.discount_amount|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td align="right">Shipping Cost ({{ order.shipping_method|default:'Standard' }}):</td>
+            <td align="right">${{ order.shipping_cost|floatformat:2 }}</td>
+        </tr>
+        <tr>
+            <td align="right">Tax Amount:</td>
+            <td align="right">${{ order.tax_amount|floatformat:2 }}</td>
+        </tr>
+        <tr style="font-size: 1.2em; background-color: #e9ecef;">
+            <td align="right"><strong>Grand Total:</strong></td>
+            <td align="right">**${{ order.total|floatformat:2 }}**</td>
+        </tr>
+    </table>
+
+    ---
+
+    <h2>🚚 Delivery and Billing Information</h2>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 20px;">
+        <tr>
+            <td width="50%" valign="top">
+                <h3>📍 Shipping Address</h3>
+                <p style="border-left: 3px solid #007bff; padding-left: 10px;">
+                    {% if order.shipping_address %}
+                        {{ order.shipping_address|linebreaksbr }}
+                    {% else %}
+                        No shipping address provided.
+                    {% endif %}
+                </p>
+            </td>
+            <td width="50%" valign="top">
+                <h3 style="margin-left: 15px;">💳 Billing Address</h3>
+                <p style="border-left: 3px solid #28a745; padding-left: 10px; margin-left: 15px;">
+                    {% if order.billing_address_same %}
+                        Same as shipping address.
+                    {% elif order.billing_address %}
+                        {{ order.billing_address|linebreaksbr }}
+                    {% else %}
+                        Not available.
+                    {% endif %}
+                </p>
+            </td>
+        </tr>
+    </table>
+
+    {% if order.customer_note %}
+        <h3>📝 Customer Note:</h3>
+        <p style="border: 1px dashed #ccc; padding: 10px; font-style: italic;">"{{ order.customer_note }}"</p>
+    {% endif %}
+
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ site_url }}/account/orders/{{ order.id }}" style="display: inline-block; padding: 12px 25px; background-color: #28a745; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 1.1em;">
+            📦 Track Your Order & View Details
+        </a>
+    </div>
+
+    <p style="text-align: center; font-size: 0.9em; color: #6c757d;">
+        Need to make a change or cancel? You can typically modify your order within the first hour on your <a href="{{ site_url }}/account/orders/{{ order.id }}">order details page</a>.
+    </p>
+
+    <p>If you have any questions, our dedicated support team is here to help you at <a href="mailto:{{ support_email }}">{{ support_email }}</a> or call us at [Your Support Phone Number].</p>
+
+    <p>Best regards,</p>
+    <p>The **{{ site_name }}** Team</p>
+
+{% endblock %}

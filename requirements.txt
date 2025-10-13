@@ -51,4 +51,42 @@ whitenoise==6.11.0
 # }
 
 
+# celery -A config.celery_app beat -l info
+# celery -A config.celery_app worker -l info
 
+# {add an order
+#   "shipping_address": "c0629596-3701-42ec-ab67-c1a0f1e16c7e",
+#   "billing_address_same": true,
+#   "customer_note": "Please handle with care",
+#   "items": [
+#     {
+#       "product_id": "cbdc5d8e-1c20-4379-84de-ec3f8d28cddf",
+#       "quantity": 200
+#     },
+#     {
+#       "product_id": "0603b162-5c36-4a0f-b78c-9078405bb7f6",
+#       "quantity": 100
+#     }
+#   ]
+# }
+# {add a promotion
+#     "name": "Big Product Percentage Off",
+#     "description": "25% de réduction sur les deux produits les plus chers : Produit Test 5 et Produit Test 2.",
+#     "discount_type": "percentage",
+#     "discount_value": "25.00",
+#     "scope": "products",
+#     "minimum_purchase_amount": "0.00",
+#     "minimum_quantity": 1,
+#     "maximum_discount_amount": "50.00",
+#     "usage_limit": null,
+#     "start_date": "2025-10-12T00:00:00Z",
+#     "end_date": "2026-01-31T23:59:59Z",
+#     "coupon_code": null,
+#     "is_active": true,
+#     "products": [
+#         "cbdc5d8e-1c20-4379-84de-ec3f8d28cddf",
+#         "4a903403-0e0f-4f38-8278-82df9d80f9a8"
+#     ],
+#     "categories": [],
+#     "brands": []
+# }

@@ -1,12 +1,8 @@
-# green_cart_api/order/api/serializers/order_serializers.py
-
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from green_cart_api.order.models import Order, OrderItem
 from green_cart_api.catalog.api.serializers.catalog_serializers import ProductListSerializer  # Assuming this exists for product details
 from green_cart_api.users.api.serializers.user_serializer import UserSerializer  # Assuming a basic UserSerializer exists
-
-
 
 class OrderItemSerializer(serializers.ModelSerializer):
     """
@@ -32,7 +28,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError(_("Quantity must be greater than zero."))
         return value
-
 
 class OrderSerializer(serializers.ModelSerializer):
     """
@@ -86,4 +81,3 @@ class OrderSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         # Add any custom representation if needed
         return representation
-    

@@ -1,5 +1,3 @@
-# green_cart_api/order/api/views/order_views.py
-
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
 from rest_framework import status
@@ -10,8 +8,16 @@ from green_cart_api.order.models import Order, OrderItem
 from green_cart_api.order.api.serializers.order_serializers import OrderSerializer, OrderItemSerializer
 from green_cart_api.catalog.models import Product  # For potential item creation
 from decimal import Decimal
+from ....global_data.enm import OrderStatus
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
+
+# Import tasks for email sending
+from green_cart_api.order.api.tasks.send_confirmation_email_tasks import (
+    send_order_confirmation_email,
+    send_order_cancellation_email,
+    send_order_update_email
+)
 
 class OrderListView(APIView):
     """
@@ -287,6 +293,8 @@ class OrderCreateView(APIView):
                 except Product.DoesNotExist:
                     return Response({'error': _("Product not found")}, status=status.HTTP_404_NOT_FOUND)
             order.calculate_totals()  # Recalculate and save
+            # Trigger confirmation email task
+            send_order_confirmation_email.delay(order.id)
             return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -343,4 +351,43 @@ class OrderCancelView(GenericAPIView):
             return Response({'error': _("Order cannot be cancelled")}, status=status.HTTP_400_BAD_REQUEST)
         order.status = OrderStatus.CANCELLED
         order.save()
+        # Trigger cancellation email task
+        send_order_cancellation_email.delay(order.id)
         return Response({'message': _("Order cancelled successfully")}, status=status.HTTP_200_OK)
+
+# Optional: Add this view if you need to handle order modifications (e.g., update shipping, add/remove items, change status)
+class OrderUpdateView(GenericAPIView):
+    """
+    View to update an existing order.
+    Method: PATCH
+    Allows partial updates, e.g., change status, addresses, etc.
+    """
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]  # Or IsAdminUser for some fields
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user)
+
+    @extend_schema(
+        summary="Update order",
+        description="Partially update an order (e.g., change address, status). Items updates might require separate endpoints.",
+        request=OrderSerializer(partial=True),
+        responses={
+            200: OpenApiResponse(
+                response=OrderSerializer,
+                description="Order updated successfully"
+            ),
+            400: OpenApiResponse(description="Invalid input data"),
+            404: OpenApiResponse(description="Order not found")
+        }
+    )
+    def patch(self, request, pk=None):
+        order = self.get_object()
+        serializer = self.get_serializer(order, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            order.calculate_totals()  # Recalculate if needed
+            # Trigger update email task
+            send_order_update_email.delay(order.id)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
